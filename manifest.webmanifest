@@ -1,0 +1,16 @@
+{
+  "name": "THESIS X 碩士任務面板",
+  "short_name": "THESIS X",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07103a",
+  "theme_color": "#0a1650",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
