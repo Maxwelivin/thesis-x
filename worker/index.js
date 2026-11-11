@@ -9,6 +9,10 @@ const SYSTEM = `你是「萊特博士」，一位嚴厲但真心想讓學生畢�
 
 【說話風格】
 - 直接、簡短、不客套。批評要具體，不羞辱人。每次回覆最多約 6 句話，清單另計。
+- 嚴厲是對事不對人：可以要求、催促、點出拖延，但不貶低學生，不諷刺他的身分或能力。學生說累或沮喪時，先用一句話承認，再要求他做一個今天就能完成的最小動作。
+- 嚴禁編造學生沒說過的事（經歷、進度、字數、日期、教授的想法）。不知道就問，或明說「我不知道」。
+- 學生問「哪些是關鍵任務」或要你挑重點時，一定要用 mark_key 提案；要求拆分就用 split_task；要求排順序就用 reorder。不要只在文字裡說，卻不提案。
+- 對學生一律稱「你」，不使用「妳」「他」「她」。
 - 不替學生做決定。資訊不夠就先問，一次最多問 2 個問題，問完就停下來等答案。
 - 學生拖延或含糊時，要求他給出具體的日期或產出。
 
@@ -22,6 +26,8 @@ const SYSTEM = `你是「萊特博士」，一位嚴厲但真心想讓學生畢�
 - 你只能「提案」。學生按「套用」才會真的改。不要說「我已經改好了」，要說「我提了一個修改，你確認後套用」。
 - 只能使用提供的工具。你不能把任務標成完成、不能刪除任務、不能改經驗值。
 - 任務用 id 指定，id 必須來自提供的任務清單，不可自創。
+- 任務 id 只能用清單裡「現在已存在」的。拆分或新增產生的新任務還沒有 id，所以同一輪不能對它們標關鍵、改字或排序；請在文字裡說「套用後我們再來挑關鍵任務」。
+- 文字裡說你提了哪些修改，就必須真的呼叫對應的工具；沒有呼叫工具，就不可以說「我幫你標好了／拆好了」。
 - 沒把握就先問，不要硬提案。
 - 工具的 reason 欄位寫一句給學生看的理由。
 - 今天日期會附在訊息裡，預計完成日一律用 YYYY-MM-DD。`;
@@ -109,19 +115,29 @@ ${JSON.stringify(tasks)}`;
 }
 
 // ── 供應商：Gemini Interactions API ──
-async function callModel(env, input) {
-  const res = await fetch(API, {
+const JUST_TALK = { type: "function", name: "just_talk", description: "這一輪不修改任何任務，只需要口頭回應（提問、評論、建議、回答問題）。",
+  parameters: { type: "object", properties: { note: { type: "string", description: "可省略" } } } };
+const DECIDE = "\n\n【本階段】你現在只負責決定這一輪要不要提出修改。需要修改就呼叫對應的工具；只是聊天、提問、評論、資訊不足時，呼叫 just_talk。學生的文字回覆會在下一階段另外寫，這裡不用寫任何文字。";
+
+async function callModel(env, input, { tools, system = SYSTEM } = {}) {
+  const reqInit = {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
     body: JSON.stringify({
       model: env.MODEL || DEFAULT_MODEL,
-      system_instruction: SYSTEM,
+      system_instruction: system,
       input,
-      tools: TOOLS,
+      ...(tools ? { tools } : {}),
       store: false,
-      generation_config: { max_output_tokens: 2048 },
+      generation_config: { max_output_tokens: 2048, ...(tools ? { tool_choice: "any" } : {}) },
     }),
-  });
+  };
+  let res;
+  for (let i = 0; i < 3; i++) { // 上游暫時忙碌（500/503）時重試
+    res = await fetch(API, reqInit);
+    if (res.status !== 503 && res.status !== 500) break;
+    await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+  }
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     console.log("gemini error", res.status, detail.slice(0, 500));
@@ -132,9 +148,29 @@ async function callModel(env, input) {
   const actions = [];
   for (const st of data.steps || []) {
     if (st.type === "model_output") text += (st.content || []).filter(c => c.type === "text").map(c => c.text).join("");
-    else if (st.type === "function_call") actions.push({ name: st.name, args: st.arguments || {} });
+    else if (st.type === "function_call" && st.name !== "just_talk") actions.push({ name: st.name, args: st.arguments || {} });
   }
   return { text: text.trim(), actions };
+}
+
+// 在最後一則使用者訊息後面附上系統備註
+function withNote(input, note) {
+  const copy = input.slice(), last = copy.pop();
+  copy.push({ ...last, content: [{ type: "text", text: last.content[0].text + "\n\n" + note }] });
+  return copy;
+}
+
+// 兩階段：先決定提案（強制呼叫工具），再根據決定寫導師口吻的說明，說明才不會提到沒做的事
+async function converse(env, input) {
+  const plan = await callModel(env, input, { tools: [...TOOLS, JUST_TALK], system: SYSTEM + DECIDE });
+  if (plan.status) return plan;
+  const actions = plan.actions.slice(0, 6);
+  const note = actions.length
+    ? "（系統：你已經提出以下修改提案，學生會在畫面上看到提案卡，按「套用」才生效。現在只用文字向學生說明：2–5 句、導師口吻、點出問題並說明理由、提醒套用後的下一步。不要逐條重複小任務內容，不要再提新的修改，不要說已經改好了。）\n" + JSON.stringify(actions)
+    : "（系統：這一輪你沒有提出任何修改。直接回應學生：回答問題、給評論；資訊不足就問最多 2 個問題。導師口吻，2–5 句。不可以說你已經拆好、標好或修改了任何東西。）";
+  const say = await callModel(env, withNote(input, note));
+  if (say.status) return say;
+  return { text: say.text, actions };
 }
 
 async function underLimit(env) {
@@ -169,7 +205,7 @@ export default {
 
     if (!(await underLimit(env))) return json({ error: "daily_limit" }, 429, c.headers);
 
-    const out = await callModel(env, input);
+    const out = await converse(env, input);
     if (out.status) return json({ error: "upstream", status: out.status }, out.status === 429 ? 429 : 502, c.headers);
     return json({ text: out.text, actions: out.actions }, 200, c.headers);
   },
