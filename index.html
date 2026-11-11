@@ -308,6 +308,10 @@ svg.px { shape-rendering: crispEdges; display: block; }
 .blink { animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
+.diag { font-size: 11px; color: #4a62b0; text-align: center; margin: 4px 0 0; -webkit-user-select: text; user-select: text; }
+
+.diag { font-size: 11px; color: #4a62b0; text-align: center; margin: 4px 0 0; -webkit-user-select: text; user-select: text; }
+
 /* 關鍵任務 */
 .key { color: var(--energy); font-size: 14px; line-height: 1.3; margin-right: -4px; flex: none; }
 .why { display: block; font-size: 12px; color: var(--energy-lo); margin-top: 2px; text-decoration: none; }
@@ -417,6 +421,7 @@ textarea { -webkit-user-select: text; user-select: text; }
             <li>面板右上角 <b>🎓</b>：和萊特博士討論，拆分任務、找關鍵任務</li>
           </ul>
         </div>
+        <p class="diag" id="diag"></p>
         <div class="card">
           <div class="ct">INSTALL</div>
           <p><b>iPhone</b>：用 Safari 開啟 → 分享 → 加入主畫面</p>
@@ -676,7 +681,7 @@ function setTab(i, quiet) {
   state.settings.tab = i; save();
   $("rail").style.transform = `translateX(${-i * 25}%)`;
   document.querySelectorAll(".view").forEach((v, k) => { v.inert = k !== i; });
-  renderTabs();
+  renderTabs(); if (i === 3) fitApp();
   if (!quiet) { beep(SE.tap); vib(8); }
 }
 
@@ -1284,10 +1289,25 @@ $("resetBtn").onclick = () => {
   save(); renderAll(); setTab(0, true);
 };
 
+// 診斷：顯示視窗、螢幕與安全區域的實際數值（排查桌面 App 模式的版面問題用）
+function fitApp() {
+  const d = $("diag"); if (!d) return;
+  const standalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;left:0;top:0;visibility:hidden;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0;width:1px;height:100vh";
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe), safeT = Math.round(parseFloat(cs.paddingTop)), safeB = Math.round(parseFloat(cs.paddingBottom)), vh = probe.getBoundingClientRect().height;
+  probe.remove();
+  const vv = window.visualViewport, app = document.querySelector(".app").getBoundingClientRect();
+  d.textContent = `${standalone ? "App 模式" : "瀏覽器"} ／ 視窗 ${innerWidth}×${innerHeight} ／ 可視 ${vv ? Math.round(vv.height) : "?"} ／ 100vh ${Math.round(vh)} ／ 螢幕 ${screen.width}×${screen.height} ／ 安全區 上${safeT} 下${safeB} ／ App 框 ${Math.round(app.top)}–${Math.round(app.bottom)}`;
+}
+addEventListener("resize", fitApp);
+addEventListener("orientationchange", fitApp);
+
 // ═════════ 啟動 ═════════
 load();
 $("hudIcon").innerHTML = pix("x", "#0870f8", "#38e8f8");
-renderAll(); renderAI();
+renderAll(); renderAI(); fitApp();
 setTab(state.settings.tab || 0, true);
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
