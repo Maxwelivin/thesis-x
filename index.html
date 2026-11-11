@@ -1072,6 +1072,20 @@ const WR = {
       if (a.due != null) { if (a.due) q.due = a.due; else delete q.due; }
     },
   },
+  remove_task: {
+    label: "建議移除任務",
+    check(a, q) {
+      const ids = Array.isArray(a.task_ids) ? a.task_ids : [];
+      if (!ids.length) return "沒有指定任務";
+      const ts = ids.map(id => findT(q, id));
+      if (ts.some(t => !t)) return "有任務找不到";
+      if (ts.some(t => t.s !== 0)) return "只能移除尚未開始的任務";
+      if (new Set(ids).size !== ids.length) return "任務重複";
+      if (ts.length >= q.tasks.length) return "不能把任務全部移除";
+    },
+    show(a, q) { return { head: "建議移除", items: a.task_ids.map(id => "✕ " + findT(q, id).t) }; },
+    apply(a, q) { q.tasks = q.tasks.filter(t => !a.task_ids.includes(t.id)); },
+  },
   create_side: {
     label: "新增支線",
     check(a) { if (!clean(a.title)) return "沒有標題"; if (!strs(a.tasks).length) return "沒有任務"; },
