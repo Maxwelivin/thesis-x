@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="THESIS X">
-<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>THESIS X</title>
@@ -442,6 +441,11 @@ textarea { -webkit-user-select: text; user-select: text; }
 </section>
 
 <script>
+// manifest 只給非 iOS 裝置（Android 安裝需要它）。iOS 27 的主畫面 App 若讀到 manifest，視窗高度會被少算、底部出現空白
+if (!/iPhone|iPad|iPod/.test(navigator.userAgent) && !(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
+  const mf = document.createElement("link"); mf.rel = "manifest"; mf.href = "manifest.webmanifest"; document.head.appendChild(mf);
+}
+
 // ═════════ 範本：公開版只帶通用的論文流程，個人內容用「匯入」放進來 ═════════
 const T = (p, arr) => arr.map((t, i) => ({ id: p + "-" + (i + 1), t, s: 0 }));
 function template() {

@@ -1,5 +1,5 @@
 // 離線快取：App 本體用「先給快取、背景更新」，字型用「有快取就用」
-const CACHE = "thesis-x-v4";
+const CACHE = "thesis-x-v5";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
