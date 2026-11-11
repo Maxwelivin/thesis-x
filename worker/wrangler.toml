@@ -1,0 +1,14 @@
+name = "thesis-x-wright"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# 允許呼叫的網站（逗號分隔）。通關密語與金鑰不要寫在這裡，用 wrangler secret 設定。
+ALLOWED_ORIGINS = "https://maxwelivin.github.io"
+# MODEL = "gemini-3.5-flash-lite"
+# DAILY_LIMIT = "200"
+
+# 想要每日上限的話：wrangler kv namespace create LIMITS，再把輸出的 id 填進來並取消註解
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "貼上 id"

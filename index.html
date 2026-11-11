@@ -308,6 +308,48 @@ svg.px { shape-rendering: crispEdges; display: block; }
 .blink { animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
+/* 關鍵任務 */
+.key { color: var(--energy); font-size: 14px; line-height: 1.3; margin-right: -4px; flex: none; }
+.why { display: block; font-size: 12px; color: var(--energy-lo); margin-top: 2px; text-decoration: none; }
+.t2 .why { display: none; }
+.task .txt { flex: 1; min-width: 0; }
+.ib.k { color: var(--muted); }
+.ib.k.on { border-color: var(--energy); color: var(--energy); }
+textarea { -webkit-user-select: text; user-select: text; }
+
+/* 萊特博士：對話模式 */
+.sheet.chatmode { height: calc(100dvh - var(--safe-t) - 28px); }
+.sh-body.chat { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.msgs { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 14px; -webkit-user-select: text; user-select: text; }
+.msg { margin-bottom: 12px; max-width: 92%; }
+.msg .who { font-family: var(--pixel); font-size: 7px; margin-bottom: 4px; color: var(--muted); }
+.msg .bub { padding: 9px 11px; border: 3px solid var(--edge); background: var(--deep); font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.msg.u { margin-left: auto; }
+.msg.u .who { text-align: right; }
+.msg.u .bub { background: var(--x-blue); border-color: var(--edge-hi); }
+.msg.a .who { color: var(--energy); }
+.msg.err .bub { border-color: var(--danger); color: #ffb8b0; }
+.wr-hello { font-size: 13px; color: var(--muted); padding: 6px 0 14px; }
+.wr-hello button { display: block; width: 100%; text-align: left; margin-top: 8px; background: var(--deep); border: 3px dashed var(--edge); padding: 10px 12px; font-size: 13.5px; color: var(--text); }
+.prop { margin: 8px 0 0; border: 3px solid var(--energy-lo); background: #0b1340; padding: 9px 10px; }
+.prop .pt { font-family: var(--pixel); font-size: 8px; color: var(--energy); margin-bottom: 6px; }
+.prop ul { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; }
+.prop li { margin: 2px 0; }
+.prop .rs { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+.prop .row { display: flex; gap: 8px; }
+.prop .row button { flex: 1; font-family: var(--pixel); font-size: 9px; padding: 9px 4px; border: 3px solid var(--edge-hi); background: var(--x-blue); }
+.prop .row button.no { background: transparent; border-color: var(--edge); color: var(--muted); }
+.prop .state { font-family: var(--pixel); font-size: 8px; }
+.prop.applied { border-color: var(--clear); } .prop.applied .state { color: var(--clear); }
+.prop.skipped, .prop.bad, .prop.undone { opacity: .6; }
+.prop .undo { margin-top: 6px; background: none; border: 2px solid var(--edge); color: var(--muted); font-size: 12px; padding: 4px 8px; }
+.composer { flex: none; display: flex; gap: 8px; align-items: flex-end; padding: 10px 14px 12px; border-top: 3px solid var(--edge); background: var(--panel); }
+.composer textarea { flex: 1; min-width: 0; resize: none; max-height: 110px; font: inherit; font-size: 16px; line-height: 1.4; color: var(--text); background: #000; color-scheme: dark; border: 3px solid var(--edge); border-radius: 0; padding: 8px 10px; }
+.composer textarea:focus { outline: none; border-color: var(--energy); }
+.composer .ib.send { background: var(--x-blue); border-color: var(--edge-hi); }
+.typing::after { content: "…"; animation: blink 1s steps(1) infinite; }
+.cfg { display: block; width: 100%; margin-top: 8px; }
+
 @media (prefers-reduced-motion: reduce) {
   .rail, .sheet, .sheet.on, .task, .mini i, .hbar .track i { transition: none; }
   .blink, .late, .warn-dot, .pellet.pop { animation: none; }
@@ -350,8 +392,17 @@ svg.px { shape-rendering: crispEdges; display: block; }
           <button class="srow" id="optVibe">震動（僅 Android） <span class="sw" id="swVibe"></span></button>
         </div>
         <div class="card">
+          <div class="ct">DR. WRIGHT 萊特博士</div>
+          <p>在關卡面板按 <b>🎓</b> 和他討論。只有你<b>按送出時</b>，該關卡的任務與對話才會傳給 AI（Gemini）；他的修改要你按「套用」才會生效。</p>
+          <input class="tx cfg" id="aiUrl" placeholder="萊特博士網址（Worker URL）" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <input class="tx cfg" id="aiPass" type="password" placeholder="通關密語" autocomplete="off">
+          <button class="btn" id="aiTest">TEST 測試連線</button>
+          <button class="btn ghost" id="aiClear">清除所有對話紀錄</button>
+          <p id="aiMsg" role="status"></p>
+        </div>
+        <div class="card">
           <div class="ct">DATA</div>
-          <p>資料只存在<b>這支手機的這個 App</b> 裡，不會上傳。記得定期匯出備份。</p>
+          <p>進度只存在<b>這支手機的這個 App</b> 裡；除了上面你主動送出給萊特博士的內容，不會上傳。記得定期匯出備份。</p>
           <button class="btn" id="expBtn">SAVE 匯出進度</button>
           <label class="btn">LOAD 匯入進度<input type="file" id="impFile" hidden></label>
           <button class="btn warn" id="resetBtn">RESET 還原成範本</button>
@@ -362,7 +413,8 @@ svg.px { shape-rendering: crispEdges; display: block; }
             <li><b>輕點任務</b>：未開始 → 進行中 → 完成</li>
             <li><b>任務往右滑</b>：直接完成；<b>往左滑</b>：重置</li>
             <li><b>面板往下拉</b>或點背景：關閉</li>
-            <li>面板右上角 <b>✎</b>：編輯標題、新增／刪除／排序任務</li>
+            <li>面板右上角 <b>✎</b>：編輯標題、新增／刪除／排序任務、標記 ★ 關鍵</li>
+            <li>面板右上角 <b>🎓</b>：和萊特博士討論，拆分任務、找關鍵任務</li>
           </ul>
         </div>
         <div class="card">
@@ -412,6 +464,7 @@ function template() {
     ],
     side: [],
     ideas: [],
+    chats: {},
     settings: { sound: true, vibe: true, tab: 0 },
   };
 }
@@ -457,11 +510,19 @@ function normalize(s) {
     main: validItems(s.main) && s.main.length === base.main.length ? s.main : base.main,
     side: validItems(s.side) ? s.side : [],
     ideas: validItems(s.ideas) ? s.ideas : [],
+    chats: {},
     settings: Object.assign(base.settings, s.settings || {}),
   };
   [...out.main, ...out.side, ...out.ideas].forEach(q => q.tasks.forEach(t => {
     t.id = t.id || uid(); t.t = String(t.t ?? ""); t.s = [0, 1, 2].includes(t.s) ? t.s : 0;
+    if (t.k) { t.k = true; t.why = String(t.why ?? "").slice(0, 120); } else { delete t.k; delete t.why; }
   }));
+  // 對話紀錄：只留還存在的關卡，且格式正確的訊息
+  const alive = new Set([["main", out.main], ["side", out.side], ["idea", out.ideas]].flatMap(([k, l]) => l.map(q => k + ":" + q.id)));
+  const ch = s.chats && typeof s.chats === "object" ? s.chats : {};
+  Object.keys(ch).forEach(k => {
+    if (alive.has(k) && Array.isArray(ch[k])) out.chats[k] = ch[k].filter(m => m && (m.r === "u" || m.r === "a") && typeof m.t === "string").slice(-40);
+  });
   return out;
 }
 function load() {
@@ -623,7 +684,7 @@ function renderLists() { renderGrid(); renderTanks(); renderIdeas(); }
 function renderAll() { renderHud(); renderLists(); renderSettings(); renderTabs(); }
 
 // ═════════ 底部面板 ═════════
-const sheet = { kind: null, id: null, edit: false, open: false };
+const sheet = { kind: null, id: null, edit: false, chat: false, open: false };
 const curItem = () => sheet.kind && listOf(sheet.kind).find(q => q.id === sheet.id);
 
 function headHTML(q) {
@@ -638,6 +699,7 @@ function headHTML(q) {
     <div class="sh-top">${icon}
       <div class="sh-ttl"><div class="code">${label}</div><h3 id="shTitle">${esc(q.title) || "（未命名）"}</h3>
         <div class="st" id="shStat">${ST[s.status]} ${s.done}/${s.total}</div></div>
+      <button class="ib${sheet.chat ? " on" : ""}" id="shWright" aria-label="${sheet.chat ? "回到任務清單" : "和萊特博士討論"}" aria-pressed="${sheet.chat ? "true" : "false"}">🎓</button>
       <button class="ib${sheet.edit ? " on" : ""}" id="shEdit" aria-label="${sheet.edit ? "完成編輯" : "編輯"}">${sheet.edit ? "✓" : "✎"}</button>
     </div>`;
 }
@@ -645,19 +707,23 @@ function headHTML(q) {
 function rowHTML(t) {
   return `<div class="trow" data-id="${t.id}">
     <div class="bg l">✓ DONE</div><div class="bg r">RESET ↺</div>
-    <button class="task t${t.s}"><i class="pellet"></i><span class="txt">${esc(t.t)}</span><span class="tag">${TAG[t.s]}</span></button>
+    <button class="task t${t.s}"><i class="pellet"></i>${t.k ? `<span class="key" aria-label="關鍵任務">★</span>` : ""}<span class="txt">${esc(t.t)}${t.k && t.why ? `<small class="why">${esc(t.why)}</small>` : ""}</span><span class="tag">${TAG[t.s]}</span></button>
   </div>`;
 }
 
 function bodyHTML(q) {
+  if (sheet.chat) return `<div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="composer"><textarea id="wrIn" rows="1" placeholder="跟萊特博士說…" enterkeyhint="send"></textarea>
+    <button class="ib send" id="wrSend" aria-label="送出">➤</button></div>`;
   if (sheet.edit) {
     const kindName = sheet.kind === "side" ? "支線" : "點子";
     return `
       <label class="fl">標題<input class="tx" data-f="title" value="${esc(q.title)}" enterkeyhint="done"></label>
       ${sheet.kind === "main" && !q.intro ? `<label class="fl">Boss 代號<input class="tx" data-f="code" value="${esc(q.code)}" enterkeyhint="done"></label>` : ""}
       <label class="fl">${sheet.kind === "idea" ? "說明" : "目標／產出"}<input class="tx" data-f="out" value="${esc(q.out)}" enterkeyhint="done"></label>
-      <div class="fl">任務（▲ 上移・✕ 刪除）</div>
+      <div class="fl">任務（★ 關鍵・▲ 上移・✕ 刪除）</div>
       ${q.tasks.map((t, i) => `<div class="erow" data-id="${t.id}">
+        <button class="ib k${t.k ? " on" : ""}" data-act="key" aria-label="關鍵任務" aria-pressed="${t.k ? "true" : "false"}">★</button>
         <button class="ib" data-act="up" aria-label="上移" ${i ? "" : "disabled"}>▲</button>
         <input class="tx" data-t="${t.id}" value="${esc(t.t)}" enterkeyhint="done">
         <button class="ib" data-act="del" aria-label="刪除">✕</button></div>`).join("")}
@@ -678,13 +744,16 @@ function renderSheet(keepScroll) {
   const q = curItem(); if (!q) return;
   const body = $("shBody"), top = body.scrollTop;
   $("shHead").innerHTML = headHTML(q);
+  body.className = "sh-body" + (sheet.chat ? " chat" : "");
+  $("sheet").classList.toggle("chatmode", sheet.chat);
   body.innerHTML = bodyHTML(q);
   if (keepScroll) body.scrollTop = top;
-  if (!sheet.edit) body.querySelectorAll(".trow").forEach(bindRow);
+  if (sheet.chat) renderMsgs(true);
+  else if (!sheet.edit) body.querySelectorAll(".trow").forEach(bindRow);
 }
 
 function openSheet(kind, id, edit = false) {
-  Object.assign(sheet, { kind, id, edit });
+  Object.assign(sheet, { kind, id, edit, chat: false });
   $("shBody").scrollTop = 0;
   renderSheet();
   $("sheet").classList.add("on"); $("scrim").classList.add("on");
@@ -695,7 +764,8 @@ function openSheet(kind, id, edit = false) {
 function closeSheet(fromPop) {
   if (!sheet.open) return;
   if (sheet.edit) leaveEdit();
-  sheet.open = false;
+  sheet.open = false; sheet.chat = false; wrAbort();
+  $("sheet").classList.remove("chatmode");
   $("sheet").classList.remove("on"); $("scrim").classList.remove("on");
   $("sheet").style.transform = ""; $("scrim").style.opacity = "";
   if (document.activeElement) document.activeElement.blur();
@@ -836,8 +906,16 @@ $("scrim").addEventListener("click", () => closeSheet());
 document.addEventListener("keydown", e => { if (e.key === "Escape" && sheet.open) closeSheet(); });
 
 $("shHead").addEventListener("click", e => {
+  if (e.target.closest("#shWright")) {
+    if (sheet.edit) leaveEdit();
+    sheet.chat = !sheet.chat; if (!sheet.chat) wrAbort();
+    renderSheet(); beep(SE.tap); vib(6);
+    if (sheet.chat && matchMedia("(pointer:fine)").matches) $("wrIn").focus();
+    return;
+  }
   if (!e.target.closest("#shEdit")) return;
-  if (sheet.edit) leaveEdit(); else sheet.edit = true;
+  if (sheet.chat) { sheet.chat = false; wrAbort(); sheet.edit = true; }
+  else if (sheet.edit) leaveEdit(); else sheet.edit = true;
   renderSheet(); beep(SE.tap); vib(6);
 });
 
@@ -854,6 +932,7 @@ $("shBody").addEventListener("click", e => {
   if (act) {
     const id = act.closest(".erow").dataset.id, i = q.tasks.findIndex(t => t.id === id);
     if (act.dataset.act === "del") q.tasks.splice(i, 1);
+    if (act.dataset.act === "key") { const t = q.tasks[i]; if (t.k) { delete t.k; delete t.why; } else t.k = true; }
     if (act.dataset.act === "up" && i > 0) [q.tasks[i - 1], q.tasks[i]] = [q.tasks[i], q.tasks[i - 1]];
     save(); renderSheet(true); renderAll(); vib(6);
   }
@@ -885,6 +964,293 @@ $("shBody").addEventListener("change", e => {
   save(); renderSheet(true); renderLists();
 });
 
+// ═════════ 萊特博士（AI 助理）：他只「提案」，你按套用才會改資料 ═════════
+const AIKEY = "thesis-x-ai"; // 網址與通關密語另存，不進匯出檔
+const loadAI = () => { try { return JSON.parse(localStorage.getItem(AIKEY)) || {}; } catch (e) { return {}; } };
+const saveAI = o => { try { localStorage.setItem(AIKEY, JSON.stringify(o)); } catch (e) {} };
+const okUrl = u => /^https:\/\//i.test(u) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(u);
+const scopeKey = () => sheet.kind + ":" + sheet.id;
+const chatOf = () => (state.chats[scopeKey()] = state.chats[scopeKey()] || []);
+const clean = (s, n = 80) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+const strs = a => (Array.isArray(a) ? a : []).map(x => clean(x)).filter(Boolean).slice(0, 12);
+const findT = (q, id) => q.tasks.find(t => t.id === id);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+let wrCtl = null, wrBusy = false, wrErr = "", wrUndo = null;
+function wrAbort() { if (wrCtl) wrCtl.abort(); wrCtl = null; wrBusy = false; wrErr = ""; }
+
+// 每種提案：check 回傳錯誤字串或 null；show 產生卡片內容；apply 真的改資料
+const WR = {
+  split_task: {
+    label: "拆分任務",
+    check(a, q) {
+      const t = findT(q, a.task_id);
+      if (!t) return "找不到這個任務";
+      if (t.s === 2) return "這個任務已完成，不能拆";
+      if (strs(a.subtasks).length < 2) return "至少要拆成 2 個小任務";
+    },
+    show(a, q) { const t = findT(q, a.task_id); return { head: `拆分「${t ? t.t : "?"}」`, items: strs(a.subtasks) }; },
+    apply(a, q) {
+      const i = q.tasks.findIndex(t => t.id === a.task_id), old = q.tasks[i];
+      const subs = strs(a.subtasks).map((t, n) => ({ id: uid(), t, s: n === 0 && old.s === 1 ? 1 : 0 }));
+      q.tasks.splice(i, 1, ...subs);
+    },
+  },
+  add_tasks: {
+    label: "新增任務",
+    check(a, q) {
+      if (!strs(a.tasks).length) return "沒有任務內容";
+      if (a.after_task_id && !findT(q, a.after_task_id)) return "找不到指定的位置";
+    },
+    show(a, q) {
+      const t = a.after_task_id && findT(q, a.after_task_id);
+      return { head: t ? `在「${t.t}」後面新增` : "新增到最後", items: strs(a.tasks) };
+    },
+    apply(a, q) {
+      const i = a.after_task_id ? q.tasks.findIndex(t => t.id === a.after_task_id) + 1 : q.tasks.length;
+      q.tasks.splice(i, 0, ...strs(a.tasks).map(t => ({ id: uid(), t, s: 0 })));
+    },
+  },
+  mark_key: {
+    label: "標記關鍵任務",
+    check(a, q) {
+      const m = Array.isArray(a.marks) ? a.marks : [];
+      if (!m.length) return "沒有指定任務";
+      if (m.some(x => !x || !findT(q, x.task_id))) return "有任務找不到";
+    },
+    show(a, q) {
+      return { head: "關鍵任務", items: (a.marks || []).map(x => {
+        const t = findT(q, x.task_id), n = t ? t.t : "?";
+        return x.key === false ? `取消 ★「${n}」` : `★「${n}」${x.why ? "：" + clean(x.why, 100) : ""}`;
+      }) };
+    },
+    apply(a, q) {
+      a.marks.forEach(x => {
+        const t = findT(q, x.task_id);
+        if (x.key === false) { delete t.k; delete t.why; } else { t.k = true; t.why = clean(x.why, 120); }
+      });
+    },
+  },
+  edit_task: {
+    label: "修改任務文字",
+    check(a, q) { if (!findT(q, a.task_id)) return "找不到這個任務"; if (!clean(a.text)) return "沒有新文字"; },
+    show(a, q) { const t = findT(q, a.task_id); return { head: "修改任務", items: [`${t ? t.t : "?"} → ${clean(a.text)}`] }; },
+    apply(a, q) { findT(q, a.task_id).t = clean(a.text); },
+  },
+  reorder: {
+    label: "調整順序",
+    check(a, q) {
+      const ids = Array.isArray(a.task_ids) ? a.task_ids : [];
+      if (ids.length < 2) return "順序資料不完整";
+      if (ids.some(id => !findT(q, id)) || new Set(ids).size !== ids.length) return "順序裡有找不到或重複的任務";
+    },
+    show(a, q) { return { head: "新的順序", items: orderOf(a, q).map(t => t.t) }; },
+    apply(a, q) { q.tasks = orderOf(a, q); },
+  },
+  set_goal_due: {
+    label: "目標／日期",
+    check(a) {
+      if (a.goal == null && a.due == null) return "沒有要改的內容";
+      if (a.due != null && a.due !== "" && !DATE_RE.test(a.due)) return "日期格式不對";
+    },
+    show(a) {
+      const items = [];
+      if (a.goal != null) items.push("目標／產出：" + clean(a.goal, 120));
+      if (a.due != null) items.push(a.due ? "預計完成：" + a.due : "清除預計完成日");
+      return { head: "修改關卡資訊", items };
+    },
+    apply(a, q) {
+      if (a.goal != null) q.out = clean(a.goal, 120);
+      if (a.due != null) { if (a.due) q.due = a.due; else delete q.due; }
+    },
+  },
+  create_side: {
+    label: "新增支線",
+    check(a) { if (!clean(a.title)) return "沒有標題"; if (!strs(a.tasks).length) return "沒有任務"; },
+    show(a) { return { head: `新增支線「${clean(a.title)}」`, items: strs(a.tasks) }; },
+    apply(a) {
+      const q = { id: "s" + uid(), title: clean(a.title, 40), out: clean(a.goal, 120), tasks: strs(a.tasks).map(t => ({ id: uid(), t, s: 0 })) };
+      state.side.push(q); return () => { state.side.splice(state.side.indexOf(q), 1); };
+    },
+  },
+};
+function orderOf(a, q) {
+  const first = a.task_ids.map(id => findT(q, id));
+  return [...first, ...q.tasks.filter(t => !first.includes(t))];
+}
+
+function buildProp(a, q) {
+  const def = a && WR[a.name];
+  if (!def) return null;
+  const args = a.args && typeof a.args === "object" ? a.args : {};
+  let err = null, view = { head: def.label, items: [] };
+  try { err = def.check(args, q) || null; if (!err) view = def.show(args, q); } catch (e) { err = "資料格式有誤"; }
+  return { name: a.name, args, head: view.head, items: view.items, why: clean(args.reason, 160), st: err ? "bad" : "new", err };
+}
+
+function applyProp(m, j) {
+  const p = m.props[j], q = curItem();
+  if (!p || p.st !== "new" || !q) return false;
+  const def = WR[p.name];
+  let err = null;
+  try { err = def.check(p.args, q) || null; } catch (e) { err = "資料格式有誤"; }
+  if (err) { p.st = "bad"; p.err = err + "（資料已變動）"; return false; }
+  const snap = structuredClone(q), list = listOf(sheet.kind), key = scopeKey();
+  const inv = def.apply(p.args, q);
+  p.st = "applied";
+  wrUndo = { key, p, undo: inv || (() => { const i = list.findIndex(x => x.id === snap.id); if (i >= 0) list[i] = snap; }) };
+  return true;
+}
+function afterApply() {
+  save(); renderAll();
+  const q = curItem(); if (q) $("shHead").innerHTML = headHTML(q);
+  renderMsgs(false); beep(SE.done); vib(12);
+}
+
+const WR_HELLO = ["幫我把這一關拆成最小的執行單位", "哪幾個是這一關的關鍵任務？為什麼？", "我不知道從哪裡開始，先問我幾個問題"];
+function msgHTML(m, i) {
+  if (m.r === "u") return `<div class="msg u"><div class="who">YOU</div><div class="bub">${esc(m.t)}</div></div>`;
+  const props = (m.props || []).map((p, j) => {
+    const items = p.items && p.items.length ? `<ul>${p.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+    const foot = p.st === "new" ? `<div class="row"><button class="press" data-do="yes" data-m="${i}" data-p="${j}">套用</button><button class="press no" data-do="no" data-m="${i}" data-p="${j}">略過</button></div>`
+      : p.st === "applied" ? `<span class="state">✓ 已套用</span>${wrUndo && wrUndo.p === p ? `<br><button class="undo" data-do="undo">↺ 撤銷</button>` : ""}`
+      : p.st === "skipped" ? `<span class="state">已略過</span>`
+      : p.st === "undone" ? `<span class="state">↺ 已撤銷</span>`
+      : `<span class="state">✕ 無法套用：${esc(p.err || "")}</span>`;
+    return `<div class="prop ${p.st}"><div class="pt">${esc(p.head)}</div>${items}${p.why ? `<p class="rs">理由：${esc(p.why)}</p>` : ""}${foot}</div>`;
+  }).join("");
+  const many = (m.props || []).filter(p => p.st === "new").length > 1
+    ? `<div class="prop"><div class="row"><button class="press" data-do="all" data-m="${i}">全部套用</button></div></div>` : "";
+  return `<div class="msg a"><div class="who">萊特博士</div>${m.t ? `<div class="bub">${esc(m.t)}</div>` : ""}${props}${many}</div>`;
+}
+function renderMsgs(scroll) {
+  const box = $("msgs"); if (!box) return;
+  const top = box.scrollTop, ms = chatOf();
+  let h = ms.length ? "" : `<div class="wr-hello">我是萊特博士。你選的是「${esc(curItem().title)}」。<br>想從哪裡開始？${WR_HELLO.map(s => `<button class="press" data-say="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
+  h += ms.map(msgHTML).join("");
+  if (wrBusy) h += `<div class="msg a"><div class="who">萊特博士</div><div class="bub typing">思考中</div></div>`;
+  if (wrErr) h += `<div class="msg a err"><div class="who">SYSTEM</div><div class="bub">${esc(wrErr)}</div></div>`;
+  box.innerHTML = h;
+  box.scrollTop = scroll ? box.scrollHeight : top;
+}
+
+function payload(q, ms) {
+  const d = new Date(), today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return {
+    today,
+    scope: { kind: sheet.kind, title: q.title, goal: q.out || "", due: q.due || "",
+      tasks: q.tasks.map(t => ({ id: t.id, text: t.t, status: ["todo", "doing", "done"][t.s], key: !!t.k })) },
+    messages: ms.slice(-12).map(m => m.r === "u" ? { role: "user", text: m.t } : {
+      role: "assistant",
+      text: (m.t || "（提出修改）") + (m.props && m.props.length ? "\n" + m.props.map(p => `[提案「${p.head}」：${{ new: "未處理", applied: "已套用", skipped: "已略過", undone: "已撤銷", bad: "無法套用" }[p.st]}]`).join("\n") : ""),
+    }),
+  };
+}
+
+async function askWright(q, ms, ctl) {
+  const ai = loadAI();
+  if (!ai.url || !ai.pass) throw new Error("還沒設定：到「設定」分頁填入萊特博士網址和通關密語。");
+  if (!okUrl(ai.url)) throw new Error("網址必須是 https:// 開頭。");
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ctl.abort(); }, 45000);
+  try {
+    const res = await fetch(ai.url, { method: "POST", signal: ctl.signal,
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + ai.pass },
+      body: JSON.stringify(payload(q, ms)) });
+    if (res.status === 401 || res.status === 403) throw new Error("通關密語不對，到「設定」檢查。");
+    if (res.status === 429) throw new Error("今天的額度用完了，或問得太快。稍後再試。");
+    if (!res.ok) throw new Error(`萊特博士暫時沒回應（${res.status}）。`);
+    return await res.json();
+  } catch (e) {
+    if (e.name === "AbortError") { if (timedOut) throw new Error("等太久了，沒有回應。"); throw e; }
+    if (e instanceof TypeError) throw new Error("連不上萊特博士，請確認網路。");
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
+async function wrSend(text) {
+  text = String(text || "").trim().slice(0, 1000);
+  const q = curItem();
+  if (!text || wrBusy || !q) return false;
+  const ms = chatOf(), ctl = wrCtl = new AbortController();
+  ms.push({ r: "u", t: text }); wrBusy = true; wrErr = "";
+  renderMsgs(true); beep(SE.tap);
+  try {
+    const out = await askWright(q, ms, ctl);
+    if (ctl.signal.aborted) return true;
+    const props = (Array.isArray(out.actions) ? out.actions : []).slice(0, 6).map(a => buildProp(a, q)).filter(Boolean);
+    const t = String(out.text || "").trim().slice(0, 2000);
+    ms.push({ r: "a", t: t || (props.length ? "" : "（萊特博士沒有回應，請換個說法再問一次）"), props });
+    if (ms.length > 40) ms.splice(0, ms.length - 40);
+    beep(SE.open);
+  } catch (e) {
+    if (e.name === "AbortError") return true;
+    ms.pop(); wrErr = e.message || "發生錯誤";
+    const inp = $("wrIn"); if (inp && !inp.value) inp.value = text;
+  }
+  wrBusy = false; wrCtl = null; save();
+  renderMsgs(true);
+  return true;
+}
+
+function sendFromInput() {
+  const inp = $("wrIn"); if (!inp) return;
+  const v = inp.value;
+  if (!v.trim() || wrBusy) return;
+  inp.value = ""; inp.style.height = "";
+  wrSend(v);
+}
+
+$("shBody").addEventListener("click", e => {
+  if (!sheet.chat) return;
+  const say = e.target.closest("[data-say]");
+  if (say) { wrSend(say.dataset.say); return; }
+  if (e.target.closest("#wrSend")) { sendFromInput(); return; }
+  const b = e.target.closest("[data-do]"); if (!b) return;
+  const ms = chatOf(), m = ms[+b.dataset.m], j = +b.dataset.p;
+  if (b.dataset.do === "yes") { if (applyProp(m, j)) afterApply(); else { save(); renderMsgs(false); vib(20); } }
+  else if (b.dataset.do === "no") { m.props[j].st = "skipped"; save(); renderMsgs(false); beep(SE.tap); }
+  else if (b.dataset.do === "all") {
+    let n = 0; m.props.forEach((p, k) => { if (p.st === "new" && applyProp(m, k)) n++; });
+    if (n) afterApply(); else { save(); renderMsgs(false); }
+  } else if (b.dataset.do === "undo" && wrUndo) {
+    wrUndo.undo(); wrUndo.p.st = "undone"; wrUndo = null;
+    save(); renderAll(); const q = curItem(); if (q) $("shHead").innerHTML = headHTML(q);
+    renderMsgs(false); beep(SE.reset); vib(8);
+  }
+});
+$("shBody").addEventListener("keydown", e => {
+  if (e.target.id !== "wrIn" || e.key !== "Enter" || e.shiftKey || e.isComposing) return;
+  if (matchMedia("(pointer:fine)").matches) { e.preventDefault(); sendFromInput(); }
+});
+$("shBody").addEventListener("input", e => {
+  if (e.target.id !== "wrIn") return;
+  e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 110) + "px";
+});
+
+// 設定：網址、密語、測試、清除對話
+function renderAI() { const a = loadAI(); $("aiUrl").value = a.url || ""; $("aiPass").value = a.pass || ""; }
+const aiMsg = (t, bad) => { const m = $("aiMsg"); m.textContent = t; m.style.color = bad ? "var(--danger)" : "var(--clear)"; };
+["aiUrl", "aiPass"].forEach(id => $(id).addEventListener("change", () => {
+  saveAI({ url: $("aiUrl").value.trim(), pass: $("aiPass").value.trim() }); aiMsg("已儲存");
+}));
+$("aiTest").onclick = async () => {
+  const url = $("aiUrl").value.trim(), pass = $("aiPass").value.trim();
+  saveAI({ url, pass });
+  if (!url || !pass) return aiMsg("請先填網址和密語", true);
+  if (!okUrl(url)) return aiMsg("網址必須是 https:// 開頭", true);
+  aiMsg("連線中…");
+  try {
+    const res = await fetch(url, { headers: { Authorization: "Bearer " + pass } });
+    if (res.status === 401 || res.status === 403) return aiMsg("通關密語不對", true);
+    if (!res.ok) return aiMsg(`連線失敗（${res.status}）`, true);
+    aiMsg("連線成功，萊特博士在線");
+  } catch (e) { aiMsg("連不上，請檢查網址與網路", true); }
+};
+$("aiClear").onclick = () => {
+  if (!confirm("確定清除所有關卡的對話紀錄？（任務內容不受影響）")) return;
+  state.chats = {}; wrUndo = null; save(); aiMsg("已清除");
+};
+
 // 設定
 $("optSound").onclick = () => { state.settings.sound = !state.settings.sound; save(); renderSettings(); beep(SE.tap); };
 $("optVibe").onclick = () => { state.settings.vibe = !state.settings.vibe; save(); renderSettings(); vib(15); };
@@ -906,7 +1272,7 @@ $("impFile").onchange = e => {
       const s = JSON.parse(txt);
       if (!s || (!s.main && !s.side && !s.ideas)) throw 0;
       // 檔案裡沒有的部分沿用目前資料
-      state = normalize({ main: s.main || state.main, side: s.side || state.side, ideas: s.ideas || state.ideas, settings: state.settings });
+      state = normalize({ main: s.main || state.main, side: s.side || state.side, ideas: s.ideas || state.ideas, chats: s.chats || state.chats, settings: state.settings });
       save(); renderAll(); toast("DATA LOADED", "匯入完成"); beep(SE.clear);
     } catch (err) { alert("檔案格式不正確"); }
   });
@@ -921,7 +1287,7 @@ $("resetBtn").onclick = () => {
 // ═════════ 啟動 ═════════
 load();
 $("hudIcon").innerHTML = pix("x", "#0870f8", "#38e8f8");
-renderAll();
+renderAll(); renderAI();
 setTab(state.settings.tab || 0, true);
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
