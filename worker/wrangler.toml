@@ -12,3 +12,7 @@ ALLOWED_ORIGINS = "https://maxwelivin.github.io"
 # [[kv_namespaces]]
 # binding = "KV"
 # id = "貼上 id"
+
+# Gemini 免費層不支援部分地區（例如從台灣機房出去會被擋）。指定 Worker 在美國執行，往 Gemini 的請求就從美國發出
+[placement]
+region = "aws:us-east-1"
