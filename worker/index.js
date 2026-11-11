@@ -25,7 +25,7 @@ const SYSTEM = `你是「萊特博士」，一位嚴厲但真心想讓學生畢�
 【說話風格】
 - 直接、簡短、不客套。批評要具體，不羞辱人。每次回覆最多約 6 句話，清單另計。
 - 嚴厲是對事不對人：可以要求、催促、點出拖延，但不貶低學生，不諷刺他的身分或能力。學生說累或沮喪時，先用一句話承認，再要求他做一個今天就能完成的最小動作。
-- 嚴禁編造學生沒說過的事（經歷、進度、字數、日期、教授的想法）。不知道就問，或明說「我不知道」。
+- 嚴禁編造或猜測學生沒說過的事（經歷、進度、字數、日期、教授的想法，也包括他為什麼累、為什麼拖延，例如不可說「你一定是備課太累」）。不知道就問，或明說「我不知道」。
 - 學生問「哪些是關鍵任務」或要你挑重點時，一定要用 mark_key 提案；要求拆分就用 split_task；要求排順序就用 reorder。不要只在文字裡說，卻不提案。
 - 對學生一律稱「你」，不使用「妳」「他」「她」。
 - 不替學生做決定。資訊不夠就先問，一次最多問 2 個問題，問完就停下來等答案。
@@ -82,6 +82,31 @@ const TOOLS = [
       task_ids: { type: "array", items: { type: "string" } }, reason: { type: "string" } }, required: ["task_ids", "reason"] } },
 ];
 
+// 總覽模式（scope.kind === "all"）：只看各專案的概況，做專案組合管理
+const GLOBAL_RULES = `
+
+【總覽模式】你現在看到的是學生「全部專案的概況」（沒有任務細節）。他有很多專案要各個擊破，你的工作是專案組合管理：
+- 先問清楚資源：他每週能投入幾小時、哪些死線是動不了的。沒問過就先問，不要憑空排。
+- 依死線、關鍵任務、依賴（主線關卡必須依序通關，locked 代表前一關還沒過）判斷輕重緩急。最多挑 1–3 個「本週主攻」（set_focus），說明為什麼是它們、為什麼其他的先不碰。
+- 主動指出：死線衝突、已逾期、沒有死線的專案（請他補日期，用 set_project_due 提案）、停滯不動的專案、可以延後或放棄的專案。
+- 不做單一專案內的任務拆分；那要他點進該專案和你討論。
+- 不替學生編日期：set_project_due 只能填學生自己說過的日期；他沒說，就先問他，不可用你猜的日期。學生明確要你建議日期時才可以提案，並在理由裡註明是你的建議。
+- 專案用 ref 指定，ref 必須來自清單，不可自創。
+- 嚴禁編造沒有出現在清單裡的專案或日期。`;
+
+const GLOBAL_TOOLS = [
+  { type: "function", name: "set_project_due", description: "設定或清除某個專案的預計完成日。due 傳空字串表示清除。",
+    parameters: { type: "object", properties: {
+      ref: { type: "string", description: "專案的 ref，例如 side:s1abc" }, due: { type: "string", description: "YYYY-MM-DD 或空字串" }, reason: { type: "string" } }, required: ["ref", "due"] } },
+  { type: "function", name: "set_focus", description: "標記或取消「本週主攻」。標記最多 3 個專案。",
+    parameters: { type: "object", properties: {
+      refs: { type: "array", items: { type: "string" } }, focus: { type: "boolean", description: "true 標記、false 取消" }, reason: { type: "string" } }, required: ["refs", "focus"] } },
+  { type: "function", name: "create_side", description: "新增一條支線，附上任務。",
+    parameters: { type: "object", properties: {
+      title: { type: "string" }, goal: { type: "string" },
+      tasks: { type: "array", items: { type: "string" } }, reason: { type: "string" } }, required: ["title", "tasks"] } },
+];
+
 const KIND_NAME = { main: "主線關卡", side: "支線", idea: "候選題目（點子）" };
 
 function cors(env, origin) {
@@ -112,9 +137,17 @@ const s = (v, n) => String(v ?? "").slice(0, n);
 
 function buildInput(body) {
   const sc = body.scope || {};
+  const isAll = sc.kind === "all";
+  const projects = (Array.isArray(sc.projects) ? sc.projects : []).slice(0, 60).map(p => ({
+    ref: s(p.ref, 30), kind: s(p.kind, 5), title: s(p.title, 60), goal: s(p.goal, 100), due: s(p.due, 10),
+    overdue: !!p.overdue, done: +p.done || 0, doing: +p.doing || 0, total: +p.total || 0, focus: !!p.focus, locked: !!p.locked,
+    key_open: (Array.isArray(p.key_open) ? p.key_open : []).slice(0, 5).map(k => s(k, 50)) }));
   const tasks = (Array.isArray(sc.tasks) ? sc.tasks : []).slice(0, 60).map(t => ({
     id: s(t.id, 24), text: s(t.text, 120), status: s(t.status, 6), key: !!t.key }));
-  const context = `【目前討論的範圍】${KIND_NAME[sc.kind] || "項目"}「${s(sc.title, 60)}」
+  const context = isAll ? `【目前討論的範圍】全部專案的概況（kind: main 主線關卡、side 支線、idea 候選題目）
+今天：${s(body.today, 10)}
+專案清單（JSON，ref 供工具使用）：
+${JSON.stringify(projects)}` : `【目前討論的範圍】${KIND_NAME[sc.kind] || "項目"}「${s(sc.title, 60)}」
 目標／產出：${s(sc.goal, 160) || "（未填）"}
 預計完成：${s(sc.due, 10) || "（未設定）"}
 今天：${s(body.today, 10)}
@@ -136,6 +169,8 @@ ${JSON.stringify(tasks)}`;
 const JUST_TALK = { type: "function", name: "just_talk", description: "這一輪不修改任何任務，只需要口頭回應（提問、評論、建議、回答問題）。",
   parameters: { type: "object", properties: { note: { type: "string", description: "可省略" } } } };
 const DECIDE = "\n\n【本階段】你現在只負責決定這一輪要不要提出修改。需要修改（含：把完成的定義寫進目標、建議移除無貢獻的任務）就呼叫對應的工具。若「目標／產出」空白或模糊，這一輪優先處理完成的定義：學生還沒說清楚就呼叫 just_talk 去追問，已說清楚就用 set_goal_due 寫入，不要同時提其他修改。學生只是在問概念、聊天、回答你的問題時，一律呼叫 just_talk。只是聊天、提問、評論、資訊不足時，呼叫 just_talk。學生的文字回覆會在下一階段另外寫，這裡不用寫任何文字。";
+
+const DECIDE_ALL = "\n\n【本階段】你現在只負責決定這一輪要不要提出修改。需要標記本週主攻（set_focus）、新增支線，或把「學生自己說出口的日期」設成專案死線（set_project_due）時，就呼叫對應的工具。絕對不可以用你猜的、建議的日期呼叫 set_project_due；專案沒有死線時，在文字裡問學生，不要提案。在你還不知道學生每週能投入多少時間、哪些死線不能動之前，不要排本週主攻，請呼叫 just_talk 先問。學生只是在問概念、聊天、回答你的問題時，一律呼叫 just_talk。學生的文字回覆會在下一階段另外寫，這裡不用寫任何文字。";
 
 async function callModel(env, input, { tools, system = SYSTEM } = {}) {
   const reqInit = {
@@ -179,14 +214,15 @@ function withNote(input, note) {
 }
 
 // 兩階段：先決定提案（強制呼叫工具），再根據決定寫導師口吻的說明，說明才不會提到沒做的事
-async function converse(env, input) {
-  const plan = await callModel(env, input, { tools: [...TOOLS, JUST_TALK], system: SYSTEM + DECIDE });
+async function converse(env, input, isAll) {
+  const sys = isAll ? SYSTEM + GLOBAL_RULES : SYSTEM;
+  const plan = await callModel(env, input, { tools: [...(isAll ? GLOBAL_TOOLS : TOOLS), JUST_TALK], system: sys + (isAll ? DECIDE_ALL : DECIDE) });
   if (plan.status) return plan;
   const actions = plan.actions.slice(0, 6);
   const note = actions.length
     ? "（系統：你已經提出以下修改提案，學生會在畫面上看到提案卡，按「套用」才生效。現在只用文字向學生說明：2–5 句、導師口吻、點出問題並說明理由、提醒套用後的下一步。不要逐條重複小任務內容，不要再提新的修改，不要說已經改好了。）\n" + JSON.stringify(actions)
     : "（系統：這一輪你沒有提出任何修改。直接回應學生：回答問題、給評論；資訊不足就問最多 2 個問題。導師口吻，2–5 句。不可以說你已經拆好、標好或修改了任何東西。）";
-  const say = await callModel(env, withNote(input, note));
+  const say = await callModel(env, withNote(input, note), { system: sys });
   if (say.status) return say;
   return { text: say.text, actions };
 }
@@ -223,7 +259,7 @@ export default {
 
     if (!(await underLimit(env))) return json({ error: "daily_limit" }, 429, c.headers);
 
-    const out = await converse(env, input);
+    const out = await converse(env, input, !!(body.scope && body.scope.kind === "all"));
     if (out.status) return json({ error: "upstream", status: out.status }, out.status === 429 ? 429 : 502, c.headers);
     return json({ text: out.text, actions: out.actions }, 200, c.headers);
   },

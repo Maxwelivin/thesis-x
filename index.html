@@ -311,6 +311,13 @@ svg.px { shape-rendering: crispEdges; display: block; }
 
 .diag { font-size: 11px; color: #4a62b0; text-align: center; margin: 4px 0 0; -webkit-user-select: text; user-select: text; }
 
+/* 總覽按鈕與「本週主攻」標籤 */
+.ovbtn { margin-left: auto; font-family: var(--cjk); font-size: 13px; color: var(--text); background: var(--deep); border: 3px solid var(--edge); padding: 5px 10px; }
+.ovbtn:active { transform: translateY(2px); }
+.ftag { position: absolute; top: 4px; left: 4px; z-index: 2; font-family: var(--pixel); font-size: 7px; background: var(--energy); color: #000; padding: 2px 3px; pointer-events: none; }
+.tank, .idea { position: relative; }
+.focus { box-shadow: 0 0 0 3px var(--energy-lo), inset 0 0 0 2px var(--edge-lo); }
+
 /* 關鍵任務 */
 .key { color: var(--energy); font-size: 14px; line-height: 1.3; margin-right: -4px; flex: none; }
 .why { display: block; font-size: 12px; color: var(--energy-lo); margin-top: 2px; text-decoration: none; }
@@ -374,13 +381,13 @@ textarea { -webkit-user-select: text; user-select: text; }
   <main class="views">
     <div class="rail" id="rail">
       <section class="view" id="v0" aria-label="主線">
-        <div class="vt"><span class="blink">STAGE SELECT</span><span class="cjk">主線・碩士論文之路</span></div>
+        <div class="vt"><span class="blink">STAGE SELECT</span><span class="cjk">主線・碩士論文之路</span><button class="ovbtn press" data-overview aria-label="全局總覽">🎓 總覽</button></div>
         <div id="introBox"></div>
         <div class="grid3" id="grid"></div>
         <p class="hint">點關卡查看任務</p>
       </section>
       <section class="view" id="v1" aria-label="支線">
-        <div class="vt">SUB TANKS<span class="cjk">支線・畢業條件與雜務</span></div>
+        <div class="vt">SUB TANKS<span class="cjk">支線・畢業條件與雜務</span><button class="ovbtn press" data-overview aria-label="全局總覽">🎓 總覽</button></div>
         <div class="tanks" id="tanks"></div>
       </section>
       <section class="view" id="v2" aria-label="點子庫">
@@ -397,6 +404,8 @@ textarea { -webkit-user-select: text; user-select: text; }
         <div class="card">
           <div class="ct">DR. WRIGHT 萊特博士</div>
           <p>在關卡面板按 <b>🎓</b> 和他討論。只有你<b>按送出時</b>，該關卡的任務與對話才會傳給 AI（Gemini）；他的修改要你按「套用」才會生效。</p>
+          <button class="srow" id="optOverview">允許總覽（送出所有專案的概況） <span class="sw" id="swOverview"></span></button>
+          <p>「總覽」只送各專案的標題、目標、日期、進度數字與關鍵任務名稱，不送完整任務清單。預設關閉。</p>
           <input class="tx cfg" id="aiUrl" placeholder="萊特博士網址（Worker URL）" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false">
           <input class="tx cfg" id="aiPass" type="password" placeholder="通關密語" autocomplete="off">
           <button class="btn" id="aiTest">TEST 測試連線</button>
@@ -474,7 +483,7 @@ function template() {
     side: [],
     ideas: [],
     chats: {},
-    settings: { sound: true, vibe: true, tab: 0 },
+    settings: { sound: true, vibe: true, tab: 0, overview: false },
   };
 }
 
@@ -527,7 +536,8 @@ function normalize(s) {
     if (t.k) { t.k = true; t.why = String(t.why ?? "").slice(0, 120); } else { delete t.k; delete t.why; }
   }));
   // 對話紀錄：只留還存在的關卡，且格式正確的訊息
-  const alive = new Set([["main", out.main], ["side", out.side], ["idea", out.ideas]].flatMap(([k, l]) => l.map(q => k + ":" + q.id)));
+  const alive = new Set([["main", out.main], ["side", out.side], ["idea", out.ideas]].flatMap(([k, l]) => l.map(q => k + ":" + q.id)).concat("all:all"));
+  [...out.main, ...out.side, ...out.ideas].forEach(q => { if (q.focus) q.focus = true; else delete q.focus; });
   const ch = s.chats && typeof s.chats === "object" ? s.chats : {};
   Object.keys(ch).forEach(k => {
     if (alive.has(k) && Array.isArray(ch[k])) out.chats[k] = ch[k].filter(m => m && (m.r === "u" || m.r === "a") && typeof m.t === "string").slice(-40);
@@ -618,8 +628,8 @@ function cellInner(q, i) {
 function renderGrid() {
   const intro = state.main[0], si = stats(intro);
   $("introBox").innerHTML = `
-    <button class="intro press s-${si.status}" data-open="main:${intro.id}">
-      ${pix(intro.icon, intro.color)}
+    <button class="intro press s-${si.status}${intro.focus ? " focus" : ""}" data-open="main:${intro.id}">
+      ${intro.focus ? `<span class="ftag">FOCUS</span>` : ""}${pix(intro.icon, intro.color)}
       <span class="info"><span class="code">${esc(intro.code)}</span>${cellInner(intro, 0)}</span>
       ${si.status === "done" ? `<span class="stamp">CLEAR</span>` : ""}
       ${isLate(intro) ? `<span class="warn-dot">!</span>` : ""}
@@ -627,8 +637,8 @@ function renderGrid() {
   $("grid").innerHTML = LAYOUT.map(slot => {
     if (slot === "P") return `<div class="player">${pix("x", "#0870f8", "#38e8f8")}<b>LV ${level()}</b><span>HUNTER</span></div>`;
     const q = state.main[slot], s = stats(q);
-    return `<button class="cell press s-${s.status}${isLocked(slot) ? " locked" : ""}${q.boss ? " boss" : ""}" data-open="main:${q.id}">
-      ${pix(q.icon, q.color)}${cellInner(q, slot)}
+    return `<button class="cell press s-${s.status}${isLocked(slot) ? " locked" : ""}${q.boss ? " boss" : ""}${q.focus ? " focus" : ""}" data-open="main:${q.id}">
+      ${q.focus ? `<span class="ftag">FOCUS</span>` : ""}${pix(q.icon, q.color)}${cellInner(q, slot)}
       ${s.status === "done" ? `<span class="stamp">CLEAR</span>` : ""}
       ${isLate(q) ? `<span class="warn-dot">!</span>` : ""}
     </button>`;
@@ -644,8 +654,8 @@ function tankBody(q) {
 function renderTanks() {
   $("tanks").innerHTML = state.side.map((q, n) => {
     const s = stats(q);
-    return `<button class="tank press s-${s.status}" data-open="side:${q.id}">
-      <span class="can"><span class="body">${tankBody(q)}</span><span class="lbl">S${n + 1}</span></span>
+    return `<button class="tank press s-${s.status}${q.focus ? " focus" : ""}" data-open="side:${q.id}">
+      ${q.focus ? `<span class="ftag">FOCUS</span>` : ""}<span class="can"><span class="body">${tankBody(q)}</span><span class="lbl">S${n + 1}</span></span>
       <span class="name">${esc(q.title)}</span>
       <span class="st">${s.status === "done" ? "FULL" : s.done + "/" + s.total}</span>
     </button>`;
@@ -659,8 +669,8 @@ function segbar(q) {
 function renderIdeas() {
   $("ideas").innerHTML = state.ideas.map(q => {
     const s = stats(q);
-    return `<button class="idea press" data-open="idea:${q.id}">
-      <h4>💡 ${esc(q.title)}</h4>
+    return `<button class="idea press${q.focus ? " focus" : ""}" data-open="idea:${q.id}">
+      ${q.focus ? `<span class="ftag">FOCUS</span>` : ""}<h4>💡 ${esc(q.title)}</h4>
       <p>${esc(q.out) || "（尚未填寫說明）"}</p>
       <div class="foot">${segbar(q)}<span class="st">${s.done}/${s.total}</span></div>
     </button>`;
@@ -672,6 +682,8 @@ function renderSettings() {
   $("swSound").classList.toggle("on", state.settings.sound);
   $("swVibe").textContent = state.settings.vibe ? "ON" : "OFF";
   $("swVibe").classList.toggle("on", state.settings.vibe);
+  $("swOverview").textContent = state.settings.overview ? "ON" : "OFF";
+  $("swOverview").classList.toggle("on", !!state.settings.overview);
 }
 
 const TABS = [["x", "主線"], ["tank", "支線"], ["bulb", "點子"], ["gear", "設定"]];
@@ -694,9 +706,14 @@ function renderAll() { renderHud(); renderLists(); renderSettings(); renderTabs(
 
 // ═════════ 底部面板 ═════════
 const sheet = { kind: null, id: null, edit: false, chat: false, open: false };
-const curItem = () => sheet.kind && listOf(sheet.kind).find(q => q.id === sheet.id);
+const OVERVIEW = { id: "all", title: "全局總覽", out: "", tasks: [] };
+const curItem = () => sheet.kind === "all" ? OVERVIEW : sheet.kind && listOf(sheet.kind).find(q => q.id === sheet.id);
 
 function headHTML(q) {
+  if (sheet.kind === "all") return `<div class="grab"></div>
+    <div class="sh-top">${pix("x", "#38e8f8")}
+      <div class="sh-ttl"><div class="code">OVERVIEW</div><h3 id="shTitle">全局總覽</h3>
+        <div class="st" id="shStat">${state.main.length + state.side.length + state.ideas.length} 個專案</div></div></div>`;
   const list = listOf(sheet.kind), idx = list.indexOf(q), s = stats(q);
   let icon, label;
   if (sheet.kind === "main") {
@@ -730,6 +747,7 @@ function bodyHTML(q) {
       <label class="fl">標題<input class="tx" data-f="title" value="${esc(q.title)}" enterkeyhint="done"></label>
       ${sheet.kind === "main" && !q.intro ? `<label class="fl">Boss 代號<input class="tx" data-f="code" value="${esc(q.code)}" enterkeyhint="done"></label>` : ""}
       <label class="fl">${sheet.kind === "idea" ? "說明" : "目標／產出"}<input class="tx" data-f="out" value="${esc(q.out)}" enterkeyhint="done"></label>
+      <button class="srow" id="focusRow">本週主攻 FOCUS <span class="sw${q.focus ? " on" : ""}">${q.focus ? "ON" : "OFF"}</span></button>
       <div class="fl">任務（★ 關鍵・▲ 上移・✕ 刪除）</div>
       ${q.tasks.map((t, i) => `<div class="erow" data-id="${t.id}">
         <button class="ib k${t.k ? " on" : ""}" data-act="key" aria-label="關鍵任務" aria-pressed="${t.k ? "true" : "false"}">★</button>
@@ -761,8 +779,8 @@ function renderSheet(keepScroll) {
   else if (!sheet.edit) body.querySelectorAll(".trow").forEach(bindRow);
 }
 
-function openSheet(kind, id, edit = false) {
-  Object.assign(sheet, { kind, id, edit, chat: false });
+function openSheet(kind, id, edit = false, chat = false) {
+  Object.assign(sheet, { kind, id, edit, chat });
   $("shBody").scrollTop = 0;
   renderSheet();
   $("sheet").classList.add("on"); $("scrim").classList.add("on");
@@ -897,7 +915,15 @@ function bindRow(row) {
 })();
 
 // ═════════ 事件 ═════════
+function openOverview() {
+  if (!state.settings.overview) {
+    if (!confirm("「總覽」會把所有專案的標題、目標、預計完成日、進度數字與關鍵任務名稱送給 AI（Gemini），不含完整任務清單。\n免費層的內容可能被 Google 用來改進產品。\n\n確定開啟？（之後可在設定關閉）")) return;
+    state.settings.overview = true; save(); renderSettings();
+  }
+  openSheet("all", "all", false, true);
+}
 document.addEventListener("click", e => {
+  if (e.target.closest("[data-overview]")) { openOverview(); return; }
   const open = e.target.closest("[data-open]");
   if (open) { const [k, id] = open.dataset.open.split(":"); openSheet(k, id); return; }
   const tab = e.target.closest("[data-tab]");
@@ -932,6 +958,7 @@ $("shBody").addEventListener("click", e => {
   const q = curItem(); if (!q) return;
   if (e.target.closest("#goIdeas")) { closeSheet(); setTab(2); return; }
   if (e.target.closest("#addTask")) { addTask(q); return; }
+  if (e.target.closest("#focusRow")) { if (q.focus) delete q.focus; else q.focus = true; save(); renderSheet(true); renderAll(); beep(SE.tap); vib(6); return; }
   if (e.target.closest("#delItem")) {
     if (!confirm(`確定刪除「${q.title}」？`)) return;
     const list = listOf(sheet.kind); list.splice(list.indexOf(q), 1);
@@ -984,6 +1011,12 @@ const clean = (s, n = 80) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0
 const strs = a => (Array.isArray(a) ? a : []).map(x => clean(x)).filter(Boolean).slice(0, 12);
 const findT = (q, id) => q.tasks.find(t => t.id === id);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const projOf = ref => {
+  const [k, ...rest] = String(ref || "").split(":"), id = rest.join(":");
+  const l = k === "main" ? state.main : k === "side" ? state.side : k === "idea" ? state.ideas : null;
+  const q = l && l.find(x => x.id === id);
+  return q ? { kind: k, q } : null;
+};
 let wrCtl = null, wrBusy = false, wrErr = "", wrUndo = null;
 function wrAbort() { if (wrCtl) wrCtl.abort(); wrCtl = null; wrBusy = false; wrErr = ""; }
 
@@ -1086,6 +1119,34 @@ const WR = {
     show(a, q) { return { head: "建議移除", items: a.task_ids.map(id => "✕ " + findT(q, id).t) }; },
     apply(a, q) { q.tasks = q.tasks.filter(t => !a.task_ids.includes(t.id)); },
   },
+  set_project_due: {
+    label: "專案預計完成日",
+    check(a) {
+      if (!projOf(a.ref)) return "找不到這個專案";
+      if (a.due == null || (a.due !== "" && !DATE_RE.test(a.due))) return "日期格式不對";
+    },
+    show(a) { const p = projOf(a.ref); return { head: `「${p ? p.q.title : "?"}」預計完成日`, items: [a.due ? "改為 " + a.due : "清除日期"] }; },
+    apply(a) {
+      const q = projOf(a.ref).q, old = q.due;
+      if (a.due) q.due = a.due; else delete q.due;
+      return () => { if (old) q.due = old; else delete q.due; };
+    },
+  },
+  set_focus: {
+    label: "本週主攻",
+    check(a) {
+      const refs = Array.isArray(a.refs) ? a.refs : [];
+      if (!refs.length) return "沒有指定專案";
+      if (refs.some(r => !projOf(r))) return "有專案找不到";
+      if (a.focus !== false && refs.length > 3) return "本週主攻最多 3 個";
+    },
+    show(a) { return { head: a.focus === false ? "取消本週主攻" : "本週主攻", items: a.refs.map(r => (a.focus === false ? "" : "🔥 ") + projOf(r).q.title) }; },
+    apply(a) {
+      const qs = a.refs.map(r => projOf(r).q), old = qs.map(q => !!q.focus);
+      qs.forEach(q => { if (a.focus === false) delete q.focus; else q.focus = true; });
+      return () => qs.forEach((q, i) => { if (old[i]) q.focus = true; else delete q.focus; });
+    },
+  },
   create_side: {
     label: "新增支線",
     check(a) { if (!clean(a.title)) return "沒有標題"; if (!strs(a.tasks).length) return "沒有任務"; },
@@ -1130,6 +1191,7 @@ function afterApply() {
 }
 
 const WR_HELLO = ["幫我把這一關拆成最小的執行單位", "哪幾個是這一關的關鍵任務？為什麼？", "我不知道從哪裡開始，先問我幾個問題"];
+const WR_HELLO_ALL = ["這週我該主攻哪幾個專案？", "有沒有死線衝突或停滯不動的專案？", "我專案太多了，哪些該延後？"];
 function msgHTML(m, i) {
   if (m.r === "u") return `<div class="msg u"><div class="who">YOU</div><div class="bub">${esc(m.t)}</div></div>`;
   const props = (m.props || []).map((p, j) => {
@@ -1148,7 +1210,8 @@ function msgHTML(m, i) {
 function renderMsgs(scroll) {
   const box = $("msgs"); if (!box) return;
   const top = box.scrollTop, ms = chatOf();
-  let h = ms.length ? "" : `<div class="wr-hello">我是萊特博士。你選的是「${esc(curItem().title)}」。<br>想從哪裡開始？${WR_HELLO.map(s => `<button class="press" data-say="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
+  const all = sheet.kind === "all";
+  let h = ms.length ? "" : `<div class="wr-hello">我是萊特博士。${all ? "這裡是全局總覽，我看得到你所有專案的概況（不含任務細節）。" : `你選的是「${esc(curItem().title)}」。`}<br>想從哪裡開始？${(all ? WR_HELLO_ALL : WR_HELLO).map(s => `<button class="press" data-say="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
   h += ms.map(msgHTML).join("");
   if (wrBusy) h += `<div class="msg a"><div class="who">萊特博士</div><div class="bub typing">思考中</div></div>`;
   if (wrErr) h += `<div class="msg a err"><div class="who">SYSTEM</div><div class="bub">${esc(wrErr)}</div></div>`;
@@ -1156,11 +1219,23 @@ function renderMsgs(scroll) {
   box.scrollTop = scroll ? box.scrollHeight : top;
 }
 
+// 總覽只送概況：標題、目標、日期、進度數字、未完成的關鍵任務名稱；不送完整任務清單
+function overviewData() {
+  const mk = (kind, list) => list.map((q, i) => {
+    const s = stats(q);
+    return { ref: kind + ":" + q.id, kind, title: clean(q.title, 50), goal: clean(q.out, 80), due: q.due || "", overdue: !!isLate(q),
+      done: s.done, doing: s.doing, total: s.total, focus: !!q.focus, locked: kind === "main" && isLocked(i) && s.status === "todo",
+      key_open: q.tasks.filter(t => t.k && t.s !== 2).map(t => clean(t.t, 40)).slice(0, 5) };
+  });
+  return [...mk("main", state.main), ...mk("side", state.side), ...mk("idea", state.ideas)].slice(0, 60);
+}
+
 function payload(q, ms) {
   const d = new Date(), today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   return {
     today,
-    scope: { kind: sheet.kind, title: q.title, goal: q.out || "", due: q.due || "",
+    scope: sheet.kind === "all" ? { kind: "all", projects: overviewData() }
+      : { kind: sheet.kind, title: q.title, goal: q.out || "", due: q.due || "",
       tasks: q.tasks.map(t => ({ id: t.id, text: t.t, status: ["todo", "doing", "done"][t.s], key: !!t.k })) },
     messages: ms.slice(-12).map(m => m.r === "u" ? { role: "user", text: m.t } : {
       role: "assistant",
@@ -1276,6 +1351,7 @@ $("aiClear").onclick = () => {
 
 // 設定
 $("optSound").onclick = () => { state.settings.sound = !state.settings.sound; save(); renderSettings(); beep(SE.tap); };
+$("optOverview").onclick = () => { state.settings.overview = !state.settings.overview; save(); renderSettings(); beep(SE.tap); };
 $("optVibe").onclick = () => { state.settings.vibe = !state.settings.vibe; save(); renderSettings(); vib(15); };
 $("expBtn").onclick = async () => {
   const name = `thesis-x_${new Date().toISOString().slice(0, 10)}.json`;
